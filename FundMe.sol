@@ -5,22 +5,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "contracts/fundme/PriceConverter.sol";
+import "fundme/PriceConverter.sol";
+
+error NotOwner();
 
 contract FundMe{
     using PriceConverter for uint256;
 
-    uint256 public minimumUsd = 50 * 1e18;
+    uint256 public constant MINIMUM_USD = 50 * 1e18;
     address[] public funders;
     mapping(address => uint256) public  addresstoAmountFunded;
 
-    address public owner;
+    address public immutable i_owner;
     constructor(){
-        owner = msg.sender;
+        i_owner = msg.sender;
     }
 
     function fund()public payable{
-        require(msg.value.getConversionRate()>=minimumUsd,"didn't enough to send");
+        require(msg.value.getConversionRate()>=MINIMUM_USD,"didn't enough to send");
         funders.push(msg.sender);
         addresstoAmountFunded[msg.sender]+=msg.value;
     }
@@ -49,9 +51,19 @@ contract FundMe{
     }
 
     modifier onlyOwner{
-         require(msg.sender == owner ,"sender is not a owner");
+        //  require(msg.sender == i_owner ,"sender is not a owner");
+        if(msg.sender==i_owner){
+            revert NotOwner();
+        }
          _;
     }
+
+    receive() external payable { 
+        fund();
+    }
+    fallback() external payable {
+        fund();
+     }
     
 }
 
